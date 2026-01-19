@@ -1,0 +1,297 @@
+# ============================================================================
+# Arc BaaS - Docker Compose Configuration
+# ============================================================================
+# Production-ready multi-container orchestration
+# Services: Backend API, Frontend UI, Redis Cache, PostgreSQL Database
+# ============================================================================
+
+version: '3.9'
+
+# ----------------------------------------------------------------------------
+# Networks
+# ----------------------------------------------------------------------------
+networks:
+  baas_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# ----------------------------------------------------------------------------
+# Volumes (Persistent Data)
+# ----------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker/volumes/postgres
+
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker/volumes/redis
+
+  backend_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./banking_data
+
+  backend_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
+
+# ----------------------------------------------------------------------------
+# Services
+# ----------------------------------------------------------------------------
+services:
+
+  # --------------------------------------------------------------------------
+  # PostgreSQL Database (Production Ready)
+  # --------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: baas_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-baas_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_production}
+      POSTGRES_DB: ${POSTGRES_DB:-baas_production}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-scripts:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      baas_network:
+        ipv4_address: 172.28.0.2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-baas_admin} -d ${POSTGRES_DB:-baas_production}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c max_connections=200
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c effective_cache_size=1GB
+      -c checkpoint_completion_target=0.9
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c log_min_duration_statement=1000
+
+  # --------------------------------------------------------------------------
+  # Redis Cache (High Performance)
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: baas_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      baas_network:
+        ipv4_address: 172.28.0.3
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # --------------------------------------------------------------------------
+  # Backend API (Flask/Gunicorn)
+  # --------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_HOME: /app
+        APP_USER: baas
+        APP_UID: 1000
+        APP_GID: 1000
+    container_name: baas_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Flask Configuration
+      FLASK_APP: baas_backend.py
+      FLASK_ENV: ${FLASK_ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+      # Database Configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-baas_admin}:${POSTGRES_PASSWORD:-change_me_in_production}@postgres:5432/${POSTGRES_DB:-baas_production}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-10}
+
+      # Redis Configuration
+      REDIS_URL: redis://redis:6379/0
+      CACHE_TYPE: redis
+      CACHE_REDIS_HOST: redis
+      CACHE_REDIS_PORT: 6379
+      CACHE_REDIS_DB: 0
+      CACHE_DEFAULT_TIMEOUT: 300
+
+      # Circle API
+      CIRCLE_API_KEY: ${CIRCLE_API_KEY}
+      CIRCLE_ENTITY_SECRET: ${CIRCLE_ENTITY_SECRET}
+
+      # Arc Network
+      ARC_RPC_URL: ${ARC_RPC_URL:-https://rpc-testnet.arc.xyz}
+      ARC_CHAIN_ID: ${ARC_CHAIN_ID:-1302}
+      PRIVATE_KEY: ${PRIVATE_KEY}
+
+      # Gemini AI
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-change_me_in_production_use_random_32_chars}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_me_in_production_use_random_64_chars}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5002,http://localhost:3000}
+
+      # Performance
+      WORKERS: ${WORKERS:-4}
+      WORKER_CONNECTIONS: ${WORKER_CONNECTIONS:-1000}
+      MAX_REQUESTS: ${MAX_REQUESTS:-1000}
+      TIMEOUT: ${TIMEOUT:-120}
+    volumes:
+      - backend_data:/app/banking_data
+      - backend_logs:/app/logs
+      - ./memory:/app/memory
+      - ./outputs:/app/outputs
+      - .env:/app/.env:ro
+    ports:
+      - "${BACKEND_PORT:-5001}:5001"
+    networks:
+      baas_network:
+        ipv4_address: 172.28.0.4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # Frontend UI (Professional Dashboard)
+  # --------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        BACKEND_URL: ${BACKEND_URL:-http://backend:5001}
+    container_name: baas_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      FLASK_APP: banking_ui_professional.py
+      FLASK_ENV: ${FLASK_ENV:-production}
+      BACKEND_URL: http://backend:5001
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${FRONTEND_PORT:-5002}:5002"
+    networks:
+      baas_network:
+        ipv4_address: 172.28.0.5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ----------------------------------------------------------------------------
+# Configuration Notes
+# ----------------------------------------------------------------------------
+#
+# Environment Variables (.env file):
+#   - Copy .env.example to .env
+#   - Set CIRCLE_API_KEY, CIRCLE_ENTITY_SECRET
+#   - Set GEMINI_API_KEY
+#   - Set PRIVATE_KEY (Arc Network)
+#   - Change SECRET_KEY and JWT_SECRET_KEY
+#   - Set strong POSTGRES_PASSWORD
+#
+# Volume Setup:
+#   mkdir -p docker/volumes/{postgres,redis}
+#   mkdir -p banking_data logs memory outputs
+#
+# Usage:
+#   docker-compose up -d                    # Start all services
+#   docker-compose logs -f backend          # View backend logs
+#   docker-compose ps                       # Check service status
+#   docker-compose down                     # Stop all services
+#   docker-compose down -v                  # Stop and remove volumes
+#
+# Production Deployment:
+#   1. Set FLASK_ENV=production
+#   2. Use strong secrets
+#   3. Configure firewall rules
+#   4. Enable SSL/TLS (add nginx reverse proxy)
+#   5. Set up monitoring (Prometheus/Grafana)
+#   6. Configure backups for volumes
+#
+# ============================================================================

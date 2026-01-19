@@ -1,0 +1,20 @@
+{
+  "ACC001": {
+    "account_id": "ACC001",
+    "owner": "John Silva",
+    "account_type": "Checking",
+    "balance": 15000.0,
+    "created_at": "2026-01-18T15:15:55.783093",
+    "status": "Active",
+    "transactions_count": 0
+  },
+  "ACC002": {
+    "account_id": "ACC002",
+    "owner": "Maria Santos",
+    "account_type": "Savings",
+    "balance": 8500.5,
+    "created_at": "2026-01-18T15:15:55.783178",
+    "status": "Active",
+    "transactions_count": 0
+  }
+}

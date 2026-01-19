@@ -1,0 +1,214 @@
+# Coverage.py configuration for Banking Syndicate
+# https://coverage.readthedocs.io/
+
+[run]
+# Source code directories to measure coverage for
+source = .
+
+# Additional paths to include
+# source_pkgs = banking_syndicate, validation_protocol, agentic_commerce
+
+# Omit these files/directories from coverage
+omit =
+    # Test files
+    test_*.py
+    *_test.py
+    tests/*
+    conftest.py
+
+    # Virtual environments
+    .venv/*
+    venv/*
+    env/*
+    ENV/*
+
+    # System files
+    __pycache__/*
+    *.pyc
+
+    # Setup and configuration
+    setup.py
+    setup.cfg
+
+    # Scripts and utilities
+    scripts/*
+    run_demo.sh
+    run_demo.bat
+    start_baas.sh
+    start_baas.ps1
+    baas_setup.py
+
+    # Demo files
+    demo_*.py
+    quick_test.py
+    validate_demo.py
+    example_*.py
+
+    # Documentation
+    docs/*
+    *.md
+
+    # Data and output directories
+    banking_data/*
+    logs/*
+    memory/*
+    outputs/*
+    blockchain/data/*
+    blockchain/blocks/*
+
+    # Third-party code
+    */site-packages/*
+    */dist-packages/*
+
+    # Generated files
+    */__pycache__/*
+    *.egg-info/*
+    build/*
+    dist/*
+
+# Enable branch coverage
+branch = True
+
+# Measure coverage during parallel runs
+parallel = True
+
+# Context for dynamic coverage contexts
+dynamic_context = test_function
+
+# Concurrency support
+# concurrency = multiprocessing, thread
+
+[report]
+# Output coverage percentage with decimal places
+precision = 2
+
+# Sort the output report
+# sort = Cover
+
+# Show missing lines in the report
+show_missing = True
+
+# Skip covered files in the report
+skip_covered = False
+
+# Skip empty files
+skip_empty = True
+
+# Ignore errors when source files don't exist
+ignore_errors = False
+
+# Exclude lines from coverage using comments
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+
+    # Don't complain about missing debug code
+    def __repr__
+    def __str__
+
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain about abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+
+    # Type checking blocks
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+    # Don't complain if non-runnable code isn't run
+    if __name__ == .__main__.:
+    if __name__ == "__main__":
+
+    # Don't complain about protocol methods
+    @protocol
+    @typing.Protocol
+
+    # Debug and development code
+    if DEBUG:
+    if debug:
+    if settings.DEBUG:
+
+    # Platform-specific code
+    if sys.platform
+    if platform.system
+
+    # Python version specific
+    if sys.version_info
+
+    # Exception handling for optional imports
+    except ImportError:
+    except ModuleNotFoundError:
+
+    # Pass statements
+    pass
+
+    # Ellipsis for protocols and stubs
+    ...
+
+    # Unreachable code
+    return NotImplemented
+
+    # Logging
+    logger.debug
+    log.debug
+
+# Exclude specific files by regex
+# exclude_also =
+#     @overload
+
+# Partial branches to exclude
+partial_branches =
+    pragma: no branch
+    if DEBUG:
+    if debug:
+
+# Minimum coverage percentage required (fail if below)
+# fail_under = 80
+
+[html]
+# Directory for HTML report
+directory = htmlcov
+
+# Title for HTML report
+title = Banking Syndicate Coverage Report
+
+# Show contexts in HTML report
+show_contexts = True
+
+# Extra CSS file
+# extra_css = custom.css
+
+[xml]
+# XML report output
+output = coverage.xml
+
+[json]
+# JSON report output
+output = coverage.json
+
+# Pretty print JSON
+pretty_print = True
+
+# Show contexts in JSON
+show_contexts = True
+
+[paths]
+# Map source paths for combining coverage from different environments
+source =
+    .
+    */site-packages/
+    */dist-packages/
+
+[coverage:run]
+# Data file location
+data_file = .coverage
+
+# Plugins to use
+# plugins =
+#     coverage_plugin
+
+# Additional options for specific coverage scenarios
+# relative_files = True

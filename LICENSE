@@ -1,0 +1,113 @@
+MIT License
+
+Copyright (c) 2026 BaaS Arc Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Third-Party Licenses
+
+This project uses the following third-party libraries and services:
+
+### Arc Network
+- License: Apache 2.0
+- Website: https://arc.network
+
+### Circle
+- License: Proprietary
+- Website: https://circle.com
+- Note: Subject to Circle's Terms of Service
+
+### Google Gemini AI
+- License: Proprietary
+- Website: https://ai.google.dev
+- Note: Subject to Google's Terms of Service
+
+### Aave Protocol
+- License: AGPL-3.0
+- Website: https://aave.com
+- Note: Aave Protocol smart contracts are licensed under AGPL-3.0
+
+### Python Libraries
+
+#### Flask (BSD-3-Clause)
+Copyright 2010 Pallets
+
+#### Web3.py (MIT)
+Copyright (c) 2021 The Ethereum Foundation
+
+#### Pydantic (MIT)
+Copyright (c) 2017 to present Samuel Colvin and other contributors
+
+#### Cryptography (Apache 2.0 / BSD)
+Copyright (c) Individual contributors
+
+#### Pytest (MIT)
+Copyright (c) 2004 Holger Krekel and others
+
+Full licenses for all dependencies can be found in their respective packages.
+
+---
+
+## Attribution Requirements
+
+When using BaaS Arc, please include the following attribution:
+
+"Powered by BaaS Arc - Autonomous Banking for AI Agents"
+
+Optional but appreciated:
+- Link to https://github.com/your-repo/baas-arc
+- Logo usage (see brand guidelines at https://baas-arc.dev/brand)
+
+---
+
+## Patent Notice
+
+This project does not contain any patented technology. All algorithms and
+methods used are either publicly known or original works released under MIT.
+
+---
+
+## Trademark Notice
+
+"BaaS Arc" and associated logos are trademarks of the BaaS Arc project.
+Use of these trademarks must comply with our trademark policy available at:
+https://baas-arc.dev/trademark-policy
+
+---
+
+## Contact
+
+For licensing questions or commercial licensing inquiries:
+- Email: legal@baas-arc.dev
+- Website: https://baas-arc.dev
+
+---
+
+## Acknowledgments
+
+This project was built for the Arc x Circle Hackathon 2026.
+
+Special thanks to:
+- Arc Network team
+- Circle team
+- Google Gemini AI team
+- Aave Protocol team
+- The open-source community

@@ -1,0 +1,70 @@
+# ============================================================================
+# Arc BaaS - Frontend UI Docker Image
+# ============================================================================
+# Professional Banking Dashboard - Production Ready
+# ============================================================================
+
+FROM python:3.13-alpine
+
+LABEL maintainer="Arc BaaS Team"
+LABEL description="Banking UI - Professional Dashboard"
+LABEL version="1.0.0"
+
+# Build arguments
+ARG APP_HOME=/app
+ARG APP_USER=baas
+ARG APP_UID=1000
+ARG APP_GID=1000
+ARG BACKEND_URL=http://backend:5001
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    APP_HOME=${APP_HOME} \
+    FLASK_APP=banking_ui_professional.py \
+    FLASK_ENV=production \
+    BACKEND_URL=${BACKEND_URL} \
+    LOG_LEVEL=INFO
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g ${APP_GID} ${APP_USER} && \
+    adduser -D -u ${APP_UID} -G ${APP_USER} -h ${APP_HOME} -s /bin/sh ${APP_USER}
+
+# Set working directory
+WORKDIR ${APP_HOME}
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn==21.2.0
+
+# Copy application code
+COPY --chown=${APP_USER}:${APP_USER} banking_ui_professional.py .
+
+# Switch to non-root user
+USER ${APP_USER}
+
+# Expose port
+EXPOSE 5002
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:5002/ || exit 1
+
+# Run with Gunicorn
+CMD ["gunicorn", \
+     "--bind", "0.0.0.0:5002", \
+     "--workers", "2", \
+     "--threads", "2", \
+     "--timeout", "60", \
+     "--graceful-timeout", "30", \
+     "--keep-alive", "5", \
+     "--log-level", "info", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "banking_ui_professional:app"]

@@ -1,0 +1,940 @@
+openapi: 3.0.3
+info:
+  title: Bank as a Service (BaaS) API
+  description: |
+    A simple, fast Banking as a Service API built with Python 3.13 and Flask.
+
+    This API provides core banking functionality including:
+    - Account management (creation, retrieval, balance)
+    - Transaction processing (debit, credit, transfer, withdrawal, deposit)
+    - Analytics and reporting
+    - AI-powered transaction validation and financial advice
+
+    **Base URL**: `http://localhost:5001`
+  version: 1.0.0
+  contact:
+    name: BaaS API Support
+    email: support@baas-api.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5001
+    description: Local development server
+  - url: http://api.baas.example.com
+    description: Production server (example)
+
+tags:
+  - name: Health
+    description: API health check endpoints
+  - name: Accounts
+    description: Bank account management operations
+  - name: Transactions
+    description: Transaction processing and retrieval
+  - name: Analytics
+    description: Financial analytics and reporting
+  - name: Banking AI
+    description: AI-powered banking features (validation, advice)
+
+paths:
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the API is running and healthy
+      operationId: getHealth
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: string
+                    example: healthy
+                  version:
+                    type: string
+                    example: 1.0.0
+              examples:
+                healthy:
+                  value:
+                    success: true
+                    status: healthy
+                    version: 1.0.0
+
+  /api/accounts:
+    get:
+      tags:
+        - Accounts
+      summary: Get all accounts
+      description: Retrieve a list of all bank accounts in the system
+      operationId: getAccounts
+      responses:
+        '200':
+          description: Successfully retrieved accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AccountSummary'
+              examples:
+                success:
+                  value:
+                    success: true
+                    accounts:
+                      - account_id: ACC001
+                        owner: John Silva
+                        balance: 15000.00
+                        account_type: Checking
+                        status: Active
+                        transactions_count: 5
+                      - account_id: ACC002
+                        owner: Maria Santos
+                        balance: 8500.50
+                        account_type: Savings
+                        status: Active
+                        transactions_count: 3
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Accounts
+      summary: Create a new account
+      description: Create a new bank account with initial balance
+      operationId: createAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - owner
+              properties:
+                owner:
+                  type: string
+                  description: Account owner's full name
+                  example: Alice Johnson
+                account_type:
+                  type: string
+                  description: Type of account (default is Checking)
+                  enum:
+                    - Checking
+                    - Savings
+                    - Business
+                  example: Checking
+                initial_balance:
+                  type: number
+                  format: float
+                  description: Initial deposit amount (default is 0)
+                  minimum: 0
+                  example: 1000.00
+            examples:
+              basicAccount:
+                summary: Basic checking account
+                value:
+                  owner: Alice Johnson
+                  account_type: Checking
+                  initial_balance: 1000.00
+              savingsAccount:
+                summary: Savings account with no initial deposit
+                value:
+                  owner: Bob Smith
+                  account_type: Savings
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  account:
+                    $ref: '#/components/schemas/Account'
+              examples:
+                created:
+                  value:
+                    success: true
+                    account:
+                      account_id: ACC003
+                      owner: Alice Johnson
+                      account_type: Checking
+                      balance: 1000.00
+                      created_at: "2026-01-19T10:30:00"
+                      status: Active
+                      transactions_count: 0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/accounts/{account_id}:
+    get:
+      tags:
+        - Accounts
+      summary: Get account details
+      description: Retrieve detailed information about a specific account
+      operationId: getAccount
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          description: Unique account identifier
+          schema:
+            type: string
+            pattern: '^ACC\d{3}$'
+            example: ACC001
+      responses:
+        '200':
+          description: Account found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  account:
+                    $ref: '#/components/schemas/AccountSummary'
+              examples:
+                success:
+                  value:
+                    success: true
+                    account:
+                      account_id: ACC001
+                      owner: John Silva
+                      balance: 15000.00
+                      account_type: Checking
+                      status: Active
+                      transactions_count: 5
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/transactions:
+    get:
+      tags:
+        - Transactions
+      summary: Get transactions
+      description: Retrieve all transactions, optionally filtered by account
+      operationId: getTransactions
+      parameters:
+        - name: account_id
+          in: query
+          required: false
+          description: Filter transactions by account ID
+          schema:
+            type: string
+            pattern: '^ACC\d{3}$'
+            example: ACC001
+      responses:
+        '200':
+          description: Successfully retrieved transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+              examples:
+                allTransactions:
+                  summary: All transactions
+                  value:
+                    success: true
+                    transactions:
+                      - transaction_id: TRXABC12345
+                        account_id: ACC001
+                        transaction_type: Debit
+                        amount: 150.00
+                        description: Online purchase
+                        date: "2026-01-19"
+                        status: Approved
+                        timestamp: "2026-01-19T14:30:00"
+                        related_account: null
+                filteredTransactions:
+                  summary: Filtered by account
+                  value:
+                    success: true
+                    transactions:
+                      - transaction_id: TRXABC12345
+                        account_id: ACC001
+                        transaction_type: Debit
+                        amount: 150.00
+                        description: Online purchase
+                        date: "2026-01-19"
+                        status: Approved
+                        timestamp: "2026-01-19T14:30:00"
+                        related_account: null
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Transactions
+      summary: Create a transaction
+      description: |
+        Process a new transaction. The transaction will be automatically validated:
+        - For DEBIT/WITHDRAWAL: Account balance must be sufficient
+        - For CREDIT/DEPOSIT: Transaction is always approved
+        - Account must be Active
+      operationId: createTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRequest'
+            examples:
+              debit:
+                summary: Debit transaction
+                value:
+                  account_id: ACC001
+                  transaction_type: Debit
+                  amount: 100.00
+                  description: Restaurant payment
+              credit:
+                summary: Credit transaction
+                value:
+                  account_id: ACC001
+                  transaction_type: Credit
+                  amount: 500.00
+                  description: Salary deposit
+              transfer:
+                summary: Transfer between accounts
+                value:
+                  account_id: ACC001
+                  transaction_type: Transfer
+                  amount: 250.00
+                  description: Transfer to savings
+                  related_account: ACC002
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  transaction:
+                    $ref: '#/components/schemas/Transaction'
+              examples:
+                approved:
+                  summary: Transaction approved
+                  value:
+                    success: true
+                    transaction:
+                      transaction_id: TRXABC12345
+                      account_id: ACC001
+                      transaction_type: Debit
+                      amount: 100.00
+                      description: Restaurant payment
+                      date: "2026-01-19"
+                      status: Approved
+                      timestamp: "2026-01-19T14:30:00"
+                      related_account: null
+                blocked:
+                  summary: Transaction blocked (insufficient funds)
+                  value:
+                    success: true
+                    transaction:
+                      transaction_id: TRXDEF67890
+                      account_id: ACC001
+                      transaction_type: Debit
+                      amount: 20000.00
+                      description: Large purchase
+                      date: "2026-01-19"
+                      status: Blocked
+                      timestamp: "2026-01-19T14:35:00"
+                      related_account: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/analytics:
+    get:
+      tags:
+        - Analytics
+      summary: Get analytics
+      description: Retrieve comprehensive banking analytics including balances, transaction counts, and account summaries
+      operationId: getAnalytics
+      responses:
+        '200':
+          description: Analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  analytics:
+                    $ref: '#/components/schemas/Analytics'
+              examples:
+                success:
+                  value:
+                    success: true
+                    analytics:
+                      total_balance: 23500.50
+                      total_accounts: 2
+                      total_transactions: 8
+                      approved_transactions: 7
+                      pending_transactions: 0
+                      transactions_by_type:
+                        Debit: 1200.00
+                        Credit: 2500.00
+                        Transfer: 250.00
+                      accounts:
+                        - account_id: ACC001
+                          owner: John Silva
+                          balance: 15000.00
+                          account_type: Checking
+                          status: Active
+                          transactions_count: 5
+                        - account_id: ACC002
+                          owner: Maria Santos
+                          balance: 8500.50
+                          account_type: Savings
+                          status: Active
+                          transactions_count: 3
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/banking-ai/validate:
+    post:
+      tags:
+        - Banking AI
+      summary: Validate transaction with AI
+      description: |
+        Use AI-powered validation to assess transaction risk before processing.
+        Returns risk score, recommendation, and reasoning.
+
+        **Risk Levels:**
+        - Low (< $5,000): Risk score 20
+        - Medium ($5,000 - $20,000): Risk score 50
+        - High (> $20,000 or invalid amount): Risk score 80
+      operationId: validateTransactionAI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - account_id
+                - amount
+              properties:
+                account_id:
+                  type: string
+                  pattern: '^ACC\d{3}$'
+                  description: Account ID to validate
+                  example: ACC001
+                amount:
+                  type: number
+                  format: float
+                  description: Transaction amount
+                  example: 100.00
+                transaction_type:
+                  type: string
+                  description: Type of transaction
+                  enum:
+                    - Debit
+                    - Credit
+                    - Transfer
+                    - Withdrawal
+                    - Deposit
+                  example: Debit
+            examples:
+              lowRisk:
+                summary: Low risk transaction
+                value:
+                  account_id: ACC001
+                  amount: 100.00
+                  transaction_type: Debit
+              highRisk:
+                summary: High risk transaction
+                value:
+                  account_id: ACC001
+                  amount: 25000.00
+                  transaction_type: Debit
+      responses:
+        '200':
+          description: Validation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  validation:
+                    $ref: '#/components/schemas/ValidationResult'
+              examples:
+                lowRisk:
+                  summary: Low risk approval
+                  value:
+                    success: true
+                    validation:
+                      risk_score: 20
+                      recommendation: APPROVE
+                      reason: OK
+                      risk_level: low
+                highRisk:
+                  summary: High risk rejection
+                  value:
+                    success: true
+                    validation:
+                      risk_score: 80
+                      recommendation: REJECT
+                      reason: OK
+                      risk_level: high
+                invalidAmount:
+                  summary: Invalid amount
+                  value:
+                    success: true
+                    validation:
+                      risk_score: 80
+                      recommendation: REJECT
+                      reason: Invalid amount
+                      risk_level: high
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: Account not found
+
+  /api/banking-ai/advice:
+    post:
+      tags:
+        - Banking AI
+      summary: Get financial advice
+      description: |
+        Get AI-powered personalized financial advice based on account status and balance.
+        Provides recommendations for savings, spending monitoring, and emergency funds.
+      operationId: getFinancialAdvice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - account_id
+              properties:
+                account_id:
+                  type: string
+                  pattern: '^ACC\d{3}$'
+                  description: Account ID to get advice for
+                  example: ACC001
+            examples:
+              default:
+                value:
+                  account_id: ACC001
+      responses:
+        '200':
+          description: Advice generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  advice:
+                    type: string
+                    description: Multi-line advice text
+                    example: |
+                      • Monitor your spending patterns regularly
+                      • Maintain a minimum emergency fund
+              examples:
+                lowBalance:
+                  summary: Advice for low balance account
+                  value:
+                    success: true
+                    advice: |
+                      • Increase your savings for better financial security
+                      • Monitor your spending patterns regularly
+                      • Maintain a minimum emergency fund
+                normalBalance:
+                  summary: Advice for normal balance account
+                  value:
+                    success: true
+                    advice: |
+                      • Monitor your spending patterns regularly
+                      • Maintain a minimum emergency fund
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: Account not found
+
+components:
+  schemas:
+    Account:
+      type: object
+      required:
+        - account_id
+        - owner
+        - account_type
+        - balance
+        - created_at
+        - status
+        - transactions_count
+      properties:
+        account_id:
+          type: string
+          pattern: '^ACC\d{3}$'
+          description: Unique account identifier
+          example: ACC001
+        owner:
+          type: string
+          description: Account owner's full name
+          example: John Silva
+        account_type:
+          type: string
+          description: Type of bank account
+          enum:
+            - Checking
+            - Savings
+            - Business
+          example: Checking
+        balance:
+          type: number
+          format: float
+          description: Current account balance
+          example: 15000.00
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp (ISO 8601)
+          example: "2026-01-19T10:00:00"
+        status:
+          type: string
+          description: Account status
+          enum:
+            - Active
+            - Inactive
+            - Suspended
+            - Closed
+          example: Active
+        transactions_count:
+          type: integer
+          description: Total number of transactions
+          example: 5
+
+    AccountSummary:
+      type: object
+      required:
+        - account_id
+        - owner
+        - balance
+        - account_type
+        - status
+        - transactions_count
+      properties:
+        account_id:
+          type: string
+          pattern: '^ACC\d{3}$'
+          example: ACC001
+        owner:
+          type: string
+          example: John Silva
+        balance:
+          type: number
+          format: float
+          example: 15000.00
+        account_type:
+          type: string
+          example: Checking
+        status:
+          type: string
+          example: Active
+        transactions_count:
+          type: integer
+          example: 5
+
+    Transaction:
+      type: object
+      required:
+        - transaction_id
+        - account_id
+        - transaction_type
+        - amount
+        - description
+        - date
+        - status
+        - timestamp
+      properties:
+        transaction_id:
+          type: string
+          pattern: '^TRX[A-Z0-9]{8}$'
+          description: Unique transaction identifier
+          example: TRXABC12345
+        account_id:
+          type: string
+          pattern: '^ACC\d{3}$'
+          description: Associated account ID
+          example: ACC001
+        transaction_type:
+          type: string
+          description: Type of transaction
+          enum:
+            - Debit
+            - Credit
+            - Transfer
+            - Withdrawal
+            - Deposit
+          example: Debit
+        amount:
+          type: number
+          format: float
+          description: Transaction amount
+          minimum: 0
+          example: 150.00
+        description:
+          type: string
+          description: Transaction description
+          example: Online purchase
+        date:
+          type: string
+          format: date
+          description: Transaction date (YYYY-MM-DD)
+          example: "2026-01-19"
+        status:
+          type: string
+          description: Transaction processing status
+          enum:
+            - Approved
+            - Pending
+            - Blocked
+          example: Approved
+        timestamp:
+          type: string
+          format: date-time
+          description: Transaction timestamp (ISO 8601)
+          example: "2026-01-19T14:30:00"
+        related_account:
+          type: string
+          nullable: true
+          pattern: '^ACC\d{3}$'
+          description: Related account ID (for transfers)
+          example: ACC002
+
+    TransactionRequest:
+      type: object
+      required:
+        - account_id
+        - transaction_type
+        - amount
+        - description
+      properties:
+        account_id:
+          type: string
+          pattern: '^ACC\d{3}$'
+          description: Account ID for the transaction
+          example: ACC001
+        transaction_type:
+          type: string
+          description: Type of transaction
+          enum:
+            - Debit
+            - Credit
+            - Transfer
+            - Withdrawal
+            - Deposit
+          example: Debit
+        amount:
+          type: number
+          format: float
+          description: Transaction amount
+          minimum: 0
+          example: 100.00
+        description:
+          type: string
+          description: Transaction description
+          example: Restaurant payment
+        related_account:
+          type: string
+          nullable: true
+          pattern: '^ACC\d{3}$'
+          description: Related account ID (required for transfers)
+          example: ACC002
+
+    Analytics:
+      type: object
+      required:
+        - total_balance
+        - total_accounts
+        - total_transactions
+        - approved_transactions
+        - pending_transactions
+        - transactions_by_type
+        - accounts
+      properties:
+        total_balance:
+          type: number
+          format: float
+          description: Sum of all account balances
+          example: 23500.50
+        total_accounts:
+          type: integer
+          description: Total number of accounts
+          example: 2
+        total_transactions:
+          type: integer
+          description: Total number of transactions
+          example: 8
+        approved_transactions:
+          type: integer
+          description: Number of approved transactions
+          example: 7
+        pending_transactions:
+          type: integer
+          description: Number of pending transactions
+          example: 0
+        transactions_by_type:
+          type: object
+          description: Transaction totals grouped by type
+          additionalProperties:
+            type: number
+            format: float
+          example:
+            Debit: 1200.00
+            Credit: 2500.00
+            Transfer: 250.00
+        accounts:
+          type: array
+          description: List of all accounts
+          items:
+            $ref: '#/components/schemas/AccountSummary'
+
+    ValidationResult:
+      type: object
+      required:
+        - risk_score
+        - recommendation
+        - reason
+        - risk_level
+      properties:
+        risk_score:
+          type: integer
+          description: Risk score (0-100, higher is riskier)
+          minimum: 0
+          maximum: 100
+          example: 20
+        recommendation:
+          type: string
+          description: AI recommendation
+          enum:
+            - APPROVE
+            - REJECT
+          example: APPROVE
+        reason:
+          type: string
+          description: Reason for the recommendation
+          example: OK
+        risk_level:
+          type: string
+          description: Risk classification
+          enum:
+            - low
+            - medium
+            - high
+          example: low
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+          example: Account not found
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: Invalid request parameters
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: Account not found
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: Internal server error
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT bearer token authentication (not currently implemented in v1.0.0).
+        Future versions will require authentication for all endpoints except /api/health.
+
+# No security applied in v1.0.0
+# Future versions will use:
+# security:
+#   - bearerAuth: []
